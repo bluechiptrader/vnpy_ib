@@ -176,6 +176,12 @@ ACCOUNTFIELD_IB2VT: dict[str, str] = {
 # 数据频率映射
 INTERVAL_VT2IB: dict[Interval, str] = {
     Interval.MINUTE: "1 min",
+    Interval.MINUTE_2: "2 mins",
+    Interval.MINUTE_3: "3 mins",
+    Interval.MINUTE_5: "5 mins",
+    Interval.MINUTE_10: "10 mins",
+    Interval.MINUTE_15: "15 mins",
+    Interval.MINUTE_30: "30 mins",
     Interval.HOUR: "1 hour",
     Interval.DAILY: "1 day",
 }
@@ -1005,10 +1011,10 @@ class IbApi(EWrapper):
 
     def query_history(self, req: HistoryRequest) -> list[BarData]:
         """查询历史数据"""
-        contract: ContractData = self.contracts[req.vt_symbol]
-        if not contract:
-            self.gateway.write_log(f"No contract found：{req.vt_symbol}，Please subscribe first")
-            return []
+        # contract: ContractData = self.contracts[req.vt_symbol]
+        # if not contract:
+        #     self.gateway.write_log(f"No contract found：{req.vt_symbol}，Please subscribe first")
+        #     return []
 
         self.history_req = req
 
@@ -1035,7 +1041,12 @@ class IbApi(EWrapper):
 
         bar_size: str = INTERVAL_VT2IB[req.interval]
 
-        if contract.product in [Product.SPOT, Product.FOREX]:
+        product: Product = PRODUCT_IB2VT.get(ib_contract.secType, None)
+        if not product:
+            self.gateway.write_log(f"Unsupported product type：{ib_contract.secType}")
+            return []
+
+        if product in [Product.SPOT, Product.FOREX]:
             bar_type: str = "MIDPOINT"
         else:
             bar_type: str = "TRADES"
@@ -1123,12 +1134,14 @@ class IbApi(EWrapper):
 
         contract: ContractData = self.contracts.get(vt_symbol, None)
         if not contract:
-            self.gateway.write_log(f"Failed to query the market slice, could not find {vt_symbol} corresponding contract data")
+            self.gateway.write_log(
+                f"Failed to query the market slice, could not find {vt_symbol} corresponding contract data")
             return
 
         ib_contract: Contract = self.ib_contracts.get(vt_symbol, None)
         if not contract:
-            self.gateway.write_log(f"Failed to query the market slice, could not find {vt_symbol} corresponding IB contract data")
+            self.gateway.write_log(
+                f"Failed to query the market slice, could not find {vt_symbol} corresponding IB contract data")
             return
 
         self.reqid += 1
