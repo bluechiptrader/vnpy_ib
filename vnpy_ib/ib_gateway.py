@@ -202,14 +202,16 @@ class IbGateway(BaseGateway):
         "TWS地址": "127.0.0.1",
         "TWS端口": 7497,
         "客户号": 1,
-        "交易账户": ""
+        "交易账户": "",
+        "市场资料类型": 1
     }
 
     default_setting_en: dict = {
         "ib_host": "127.0.0.1",
         "ib_port": 7497,
         "ib_client_id": 1,
-        "ib_account_id": ""
+        "ib_account_id": "",
+        "market_data_type": 1  # 1: delayed, 2: real-time, 3: delayed, 4: delayed-frozen
     }
 
     exchanges: list[str] = list(EXCHANGE_VT2IB.keys())
@@ -227,8 +229,9 @@ class IbGateway(BaseGateway):
         port: int = setting.get("TWS端口", None) or setting.get("ib_port", 7497)
         clientid: int = setting.get("客户号", None) or setting.get("ib_client_id", 1)
         account: str = setting.get("交易账户", None) or setting.get("ib_account_id", "")
+        market_data_type: int = setting.get("市场资料类型", None) or setting.get("market_data_type", 1)
 
-        self.api.connect(host, port, clientid, account)
+        self.api.connect(host, port, clientid, account, market_data_type=market_data_type)
 
         self.event_engine.register(EVENT_TIMER, self.process_timer_event)
 
@@ -850,7 +853,8 @@ class IbApi(EWrapper):
             host: str,
             port: int,
             clientid: int,
-            account: str
+            account: str,
+            market_data_type: int = 1
     ) -> None:
         """连接TWS"""
         if self.status:
@@ -862,6 +866,7 @@ class IbApi(EWrapper):
         self.account = account
 
         self.client.connect(host, port, clientid)
+        self.client.reqMarketDataType(market_data_type)
         self.thread = Thread(target=self.client.run)
         self.thread.start()
 
